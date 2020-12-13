@@ -31,7 +31,6 @@ namespace Engine
             // No item required to enter for this location.
             if (location.ItemRequiredToEnter == null)
             {
-
                 return true;
             }
 
@@ -53,6 +52,18 @@ namespace Engine
                 if (playerQuest.Details.ID == quest.ID)
                 {
                     return true;
+                }
+            }
+            return false;
+        }
+
+        public bool CompletedThisQuest(Quest quest)
+        {
+            foreach (PlayerQuest playerQuest in Quests)
+            {
+                if (playerQuest.Details.ID == quest.ID)
+                {
+                    return playerQuest.IsCompleted;
                 }
             }
             return false;
@@ -113,7 +124,7 @@ namespace Engine
             Inventory.Add(new InventoryItem(itemToAdd, 1));
         }
 
-        public void MarkQuestComplete(Quest quest)
+        public void MarkQuestCompleted(Quest quest)
         {
             foreach (PlayerQuest pq in Quests)
             {
