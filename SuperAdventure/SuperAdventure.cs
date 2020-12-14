@@ -282,12 +282,117 @@ namespace SuperAdventure
 
         private void btnUseWeapon_Click(object sender, EventArgs e)
         {
+            Weapon currentWeapon = (Weapon)cboWeapons.SelectedItem;
+            int damageToMonster = RNG.NumberBetween(currentWeapon.MinimumDamage, currentWeapon.MaximumDamage);
+            currentMonster.CurrentHitPoints -= damageToMonster;
+            rtbMessages.Text += $"You hit the {currentMonster.Name} for {damageToMonster.ToString()} points.\n";
 
+            if (currentMonster.CurrentHitPoints <= 0)
+            {
+                rtbMessages.Text += $"\nYou defeated the {currentMonster.Name}.\n";
+
+                player.ExperiencePoints += currentMonster.RewardExperencePoints;
+                rtbMessages.Text += $"You gain {currentMonster.RewardExperencePoints.ToString()} experience points.\n";
+
+                player.Gold += currentMonster.RewardGold;
+                rtbMessages.Text += $"You receive {currentMonster.RewardGold} gold coins.\n";
+
+                List<InventoryItem> lootedItems = new List<InventoryItem>();
+                foreach (LootItem lootItem in currentMonster.LootTable)
+                {
+                    if (RNG.NumberBetween(1,100) <= lootItem.DropPercentage)
+                    {
+                        lootedItems.Add(new InventoryItem(lootItem.Details, 1));
+                    }
+                }
+                // If no random drop, add default drop to inventory instead.
+                if (lootedItems.Count == 0)
+                {
+                    foreach (LootItem lootItem in currentMonster.LootTable)
+                    {
+                        if (lootItem.IsDefaultItem)
+                        {
+                            lootedItems.Add(new InventoryItem(lootItem.Details, 1));
+                        }
+                    }
+                }
+                // Add item to inventory.
+                foreach (InventoryItem inventoryItem in lootedItems)
+                {
+                    player.AddItemToInventory(inventoryItem.Details);
+                    if (inventoryItem.Quantity == 1)
+                    {
+                        rtbMessages.Text += $"You found {inventoryItem.Quantity} {inventoryItem.Details.Name}\n";
+                    }
+                    else
+                    {
+                        rtbMessages.Text += $"You found {inventoryItem.Quantity} {inventoryItem.Details.NamePlural}\n";
+                    }
+                }
+
+                // Refresh UI.
+                lblHitPoints.Text = player.CurrentHitPoints.ToString();
+                lblGold.Text = player.Gold.ToString();
+                lblExperience.Text = player.ExperiencePoints.ToString();
+                lblLevel.Text = player.Level.ToString();
+
+                UpdateInventoryListInUI();
+                UpdateWeaponsListInUI();
+                UpdatePotionListInUI();
+                rtbMessages.Text += Environment.NewLine;
+
+                MoveTo(player.CurrentLocation);
+            }
+            // Monster is still alive
+            else
+            {
+                int damageToPlayer = RNG.NumberBetween(0, currentMonster.MaximumDamage);
+                rtbMessages.Text += $"The {currentMonster.Name} deals {damageToPlayer} damage to you.\n";
+                player.CurrentHitPoints -= damageToPlayer;
+                lblHitPoints.Text = player.CurrentHitPoints.ToString();
+
+                if (player.CurrentHitPoints <= 0)
+                {
+                    rtbMessages.Text += $"The {currentMonster.Name} killed you!\n";
+                    MoveTo(World.LocationByID(World.LOCATION_ID_HOME));
+                }
+            }
         }
 
         private void btnUsePotion_Click(object sender, EventArgs e)
         {
+            //---   Drink potion  ---//
+            //Get selected potion from combobox.
+            HealingPotion potion = (HealingPotion)cboPotions.SelectedItem;
+            player.CurrentHitPoints += potion.AmountToHeal;
+            if (player.CurrentHitPoints > player.MaximumHitPoints)
+            {
+                player.CurrentHitPoints = player.MaximumHitPoints;
+            }
+            //Reduce inventory.
+            foreach (InventoryItem inventoryItem in player.Inventory)
+            {
+                if (inventoryItem.Details.ID == potion.ID)
+                {
+                    inventoryItem.Quantity--;
+                    break;
+                }
+            }
+            rtbMessages.Text += $"You drink a {potion.Name}\n";
 
+            //---    Monster gets their turn to attack    ---//
+            int damageToPlayer = RNG.NumberBetween(0, currentMonster.MaximumDamage);
+            rtbMessages.Text += $"The {currentMonster.Name} deals {damageToPlayer} damage to you.\n";
+            player.CurrentHitPoints -= damageToPlayer;
+            if (player.CurrentHitPoints <= 0)
+            {
+                rtbMessages.Text += $"The {currentMonster.Name} kills you!\n";
+                MoveTo(World.LocationByID(World.LOCATION_ID_HOME));
+            }
+            // Refresh UI.
+            lblHitPoints.Text = player.CurrentHitPoints.ToString();
+            UpdateInventoryListInUI();
+            UpdatePotionListInUI();
         }
 
     }
